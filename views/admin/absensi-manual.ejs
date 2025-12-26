@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include('../partials/header') %>
+<body>
+    <div class="page">
+        <%- include('../partials/sidebar') %>
+        <div class="page-wrapper">
+            <div class="page-header d-print-none">
+                <div class="container-xl">
+                    <h2 class="page-title">Absensi Manual</h2>
+                </div>
+            </div>
+            
+            <div class="page-body">
+                <div class="container-xl">
+                    <div class="row row-cards justify-content-center">
+                        <div class="col-md-8 col-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Form Input Manual</h3>
+                                </div>
+                                <div class="card-body">
+                                    <form action="/admin/absensi-manual" method="POST">
+                                        <div class="mb-3">
+                                            <label class="form-label">Pilih Peserta</label>
+                                            <select class="form-select" name="peserta_id">
+                                                <% peserta.forEach(p => { %>
+                                                    <option value="<%= p.id %>"><%= p.nama %> - <%= p.nim %></option>
+                                                <% }) %>
+                                            </select>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Tanggal</label>
+                                                    <input type="date" name="tanggal" class="form-control" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Jam</label>
+                                                    <input type="time" name="jam" class="form-control" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Status Kehadiran</label>
+                                            <select class="form-select" name="status">
+                                                <option value="Hadir">Hadir</option>
+                                                <option value="Terlambat">Terlambat</option>
+                                                <option value="Izin">Izin</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-footer">
+                                            <button type="submit" class="btn btn-primary w-100">Simpan Data</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <%- include('../partials/scripts') %>
+</body>
+</html>

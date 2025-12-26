@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include('../partials/header') %>
+<body class="layout-fluid">
+    <div class="page">
+        
+        <%- include('../partials/sidebar') %>
+        
+        <div class="page-wrapper">
+            
+            <div class="page-header d-print-none mt-4">
+                <div class="container-xl">
+                    <div class="row g-2 align-items-center">
+                        <div class="col">
+                            <h2 class="page-title" style="font-size: 1.8rem; font-weight: bold;">
+                                Data Peserta
+                            </h2>
+                            <div class="text-muted mt-1">Kelola data mahasiswa yang terdaftar di sistem.</div>
+                        </div>
+                        <div class="col-auto ms-auto d-print-none">
+                            <div class="btn-list">
+                                <button class="btn btn-success d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#importModal">
+                                    <i class="fas fa-file-excel me-2"></i> Import Excel
+                                </button>
+                                <button class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#addModal">
+                                    <i class="fas fa-plus me-2"></i> Tambah Peserta
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-body">
+                <div class="container-xl">
+                    
+                    <% if (status === 'success_add') { %>
+                        <div class="alert alert-success alert-dismissible" role="alert">Berhasil menambah peserta!<a href="#" class="btn-close" data-bs-dismiss="alert" aria-label="close"></a></div>
+                    <% } else if (status === 'success_import') { %>
+                        <div class="alert alert-success alert-dismissible" role="alert">Import Excel berhasil!<a href="#" class="btn-close" data-bs-dismiss="alert" aria-label="close"></a></div>
+                    <% } else if (status === 'success_delete') { %>
+                        <div class="alert alert-success alert-dismissible" role="alert">Data berhasil dihapus.<a href="#" class="btn-close" data-bs-dismiss="alert" aria-label="close"></a></div>
+                    <% } else if (status === 'error') { %>
+                        <div class="alert alert-danger alert-dismissible" role="alert">Terjadi kesalahan sistem.<a href="#" class="btn-close" data-bs-dismiss="alert" aria-label="close"></a></div>
+                    <% } %>
+
+                    <div class="card shadow-sm border-0" style="border-radius: 12px;">
+                        <div class="table-responsive">
+                            <table class="table card-table table-vcenter text-nowrap datatable table-hover">
+                                <thead style="background-color: #f8f9fa;">
+                                    <tr>
+                                        <th class="w-1">No</th>
+                                        <th>NIM</th>
+                                        <th>Nama Lengkap</th>
+                                        <th>Program Studi</th>
+                                        <th class="text-end">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if(peserta.length === 0) { %>
+                                        <tr><td colspan="5" class="text-center py-5 text-muted">Belum ada data peserta. Silakan tambah atau import.</td></tr>
+                                    <% } %>
+                                    <% peserta.forEach((p, index) => { %>
+                                        <tr>
+                                            <td><span class="text-muted"><%= index + 1 %></span></td>
+                                            <td><span class="badge bg-blue-lt"><%= p.nim %></span></td>
+                                            <td class="fw-bold text-dark"><%= p.nama %></td>
+                                            <td><%= p.prodi %></td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-ghost-primary" 
+                                                    onclick="editData('<%= p.id %>', '<%= p.nama %>', '<%= p.nim %>', '<%= p.prodi %>')">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </button>
+                                                <a href="/admin/hapus-peserta/<%= p.id %>" class="btn btn-sm btn-ghost-danger" onclick="return confirm('Yakin ingin menghapus peserta ini?')">
+                                                    <i class="fas fa-trash"></i> Hapus
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <footer class="footer footer-transparent d-print-none">
+                <div class="container-xl">
+                    <div class="row text-center align-items-center flex-row-reverse">
+                        <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                            <ul class="list-inline list-inline-dots mb-0">
+                                <li class="list-inline-item">
+                                    Copyright &copy; 2025
+                                    <a href="." class="link-secondary">Sistem Absensi MRC</a>.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <div class="modal modal-blur fade" id="addModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <form action="/admin/tambah-peserta" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Tambah Peserta Baru</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label required">Nama Lengkap</label>
+                            <input type="text" class="form-control" name="nama" placeholder="Contoh: Budi Santoso" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required">NIM</label>
+                            <input type="text" class="form-control" name="nim" placeholder="Contoh: 2023001" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required">Program Studi</label>
+                            <input type="text" class="form-control" name="prodi" placeholder="Contoh: Teknik Informatika" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn me-auto" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan Data</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal modal-blur fade" id="importModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <form action="/admin/import-peserta" method="POST" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Import Data dari Excel</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Upload File Excel</label>
+                            
+                            <div class="dropzone-area" id="dropzone">
+                                <div class="text-center">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-2"></i>
+                                    <h5>Drag & Drop file disini</h5>
+                                    <p class="text-muted small">atau klik untuk memilih file</p>
+                                    <div id="file-name-display" class="mt-2 text-primary fw-bold"></div>
+                                </div>
+                                <input type="file" name="fileExcel" id="fileExcel" class="file-input-hidden" accept=".xlsx, .xls" required>
+                            </div>
+
+                        </div>
+                        <div class="alert alert-info bg-azure-lt border-0">
+                            <small>
+                                <i class="fas fa-info-circle me-1"></i> Format Excel:
+                                <br>Baris 1: Header (Diabaikan)
+                                <br>Kolom A: Nama | Kolom B: NIM | Kolom C: Prodi
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn me-auto" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-upload me-2"></i> Upload & Import</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal modal-blur fade" id="editModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <form action="/admin/edit-peserta" method="POST">
+                    <input type="hidden" name="id" id="edit_id">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Data Peserta</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label required">Nama Lengkap</label>
+                            <input type="text" class="form-control" name="nama" id="edit_nama" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required">NIM</label>
+                            <input type="text" class="form-control" name="nim" id="edit_nim" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required">Program Studi</label>
+                            <input type="text" class="form-control" name="prodi" id="edit_prodi" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn me-auto" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Update Data</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <%- include('../partials/scripts') %>
+
+    <style>
+        .dropzone-area {
+            border: 2px dashed #dce1e7;
+            border-radius: 8px;
+            padding: 30px;
+            background-color: #f8f9fa;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .dropzone-area:hover, .dropzone-area.dragover {
+            background-color: #eef2ff;
+            border-color: #384BC9;
+        }
+        .file-input-hidden {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+    </style>
+
+    <script>
+        // Logika Drag & Drop
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileExcel');
+        const fileNameDisplay = document.getElementById('file-name-display');
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if(e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                fileNameDisplay.textContent = 'File: ' + e.dataTransfer.files[0].name;
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if(fileInput.files.length) {
+                fileNameDisplay.textContent = 'File: ' + fileInput.files[0].name;
+            }
+        });
+
+        // Logika Modal Edit
+        function editData(id, nama, nim, prodi) {
+            document.getElementById('edit_id').value = id;
+            document.getElementById('edit_nama').value = nama;
+            document.getElementById('edit_nim').value = nim;
+            document.getElementById('edit_prodi').value = prodi;
+            var myModal = new bootstrap.Modal(document.getElementById('editModal'));
+            myModal.show();
+        }
+    </script>
+</body>
+</html>

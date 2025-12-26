@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- RESET & BASE --- */
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        .main-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* --- BAGIAN KIRI (FORM) - 50% --- */
+        .left-section {
+            flex: 1; 
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding: 50px; /* Padding lebih besar agar konten bernafas */
+        }
+
+        /* --- BAGIAN KANAN (GAMBAR) - 50% --- */
+        .right-section {
+            flex: 1;
+            position: relative;
+            background-color: #f0f0f0;
+            overflow: hidden;
+        }
+
+        /* Background Kampus (ASLI) */
+        .bg-image {
+            width: 100%;
+            height: 100%;
+            background-image: url('/images/bg_kampus.png'); 
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Logo MRC di Kanan */
+        .logo-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 380px; /* Ukuran logo disesuaikan sedikit lebih besar */
+            max-width: 80%; /* Agar aman di layar kecil */
+            height: auto;
+            z-index: 10;
+            filter: drop-shadow(0 0 15px rgba(0,0,0,0.4)); /* Shadow lebih kuat agar kontras */
+        }
+
+        /* --- STYLING TYPOGRAPHY & FORM (REVISI UKURAN) --- */
+        
+        .form-wrapper {
+            width: 100%;
+            max-width: 500px; /* Lebar form diperbesar sedikit */
+        }
+
+        /* Judul Besar */
+        .title-text {
+            font-weight: 800; /* Extra Bold agar seimbang dengan logo */
+            font-size: 3rem; /* Diperbesar dari 2.2rem ke 3rem (48px) */
+            color: #111;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        /* Subtitle */
+        .subtitle-text {
+            color: #555; /* Warna lebih gelap agar lebih terbaca */
+            font-size: 1.1rem; /* Diperbesar dari 1rem ke 1.1rem (18px) */
+            font-weight: 400;
+            margin-bottom: 3.5rem; /* Jarak ke form diperlebar */
+            text-align: center;
+        }
+
+        /* Label Form */
+        .form-label {
+            font-weight: 700; /* Bold */
+            color: #000;
+            margin-bottom: 10px;
+            font-size: 1.1rem; /* Diperbesar ke 1.1rem (18px) */
+            text-align: center;
+            display: block;
+        }
+
+        /* Input Field */
+        .custom-input {
+            width: 100%;
+            border: 2px solid #e5e7eb; /* Border sedikit lebih tebal */
+            background-color: #f8f9fa; 
+            border-radius: 50px;
+            padding: 16px 28px; /* Input lebih tinggi/gemuk */
+            font-size: 1.1rem; /* Teks input diperbesar */
+            font-weight: 500;
+            color: #333;
+            text-align: center;
+            margin-bottom: 2rem; /* Jarak antar input diperlebar */
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .custom-input:focus {
+            border-color: #333;
+            background-color: #fff;
+            box-shadow: 0 0 0 5px rgba(0,0,0,0.05);
+        }
+
+        .custom-input::placeholder {
+            color: #9ca3af;
+            font-weight: 400;
+            font-size: 1rem;
+        }
+
+        .custom-input:read-only {
+            background-color: #e9ecef;
+            border-color: #dee2e6;
+            color: #6c757d;
+        }
+
+        /* Tombol Konfirmasi */
+        .btn-absen {
+            background-color: #ff4757; 
+            color: white;
+            border: none;
+            border-radius: 16px; 
+            width: 100%;
+            padding: 18px; /* Tombol lebih tinggi */
+            font-weight: 700;
+            font-size: 1.2rem; /* Font tombol diperbesar */
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 8px 20px rgba(255, 71, 87, 0.25);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .btn-absen:hover:not(:disabled) {
+            background-color: #e04050;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255, 71, 87, 0.35);
+        }
+
+        .btn-absen:disabled {
+            background-color: #ffb8c0;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Icon Fullscreen */
+        .fullscreen-icon-container {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            z-index: 20;
+        }
+        
+        .fullscreen-btn {
+            width: 40px; /* Icon diperbesar sedikit */
+            cursor: pointer;
+            opacity: 0.8;
+            transition: 0.2s;
+        }
+        
+        .fullscreen-btn:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        /* Autocomplete List */
+        #suggestions {
+            text-align: left;
+            border-radius: 15px;
+            overflow: hidden;
+            top: 95px; /* Disesuaikan dengan tinggi input baru */
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border: 1px solid #f0f0f0;
+        }
+        
+        .list-group-item {
+            padding: 15px 20px; /* Padding list diperbesar */
+            font-size: 1rem;
+        }
+
+        /* --- RESPONSIVE MOBILE --- */
+        @media (max-width: 900px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .left-section {
+                padding: 30px;
+            }
+            .right-section {
+                display: none; 
+            }
+            .title-text {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        
+        <div class="left-section">
+            
+            <div class="fullscreen-icon-container">
+                <img src="/images/fullscreen_icon.png" id="toggleFullscreen" class="fullscreen-btn" alt="Fullscreen" title="Layar Penuh">
+            </div>
+
+            <div class="form-wrapper">
+                <h1 class="title-text">ABSENSI</h1>
+                <p class="subtitle-text">Silahkan ketik nama anda dan klik konfirmasi</p>
+
+                <form id="formAbsensi">
+                    <input type="hidden" id="peserta_id" name="peserta_id">
+
+                    <div class="mb-3 position-relative">
+                        <label for="inputNama" class="form-label">Nama</label>
+                        <input type="text" class="custom-input" id="inputNama" placeholder="Ketik nama anda..." autocomplete="off">
+                        
+                        <div id="suggestions" class="list-group position-absolute w-100 mt-1" style="display: none;"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="inputNIM" class="form-label">NIM</label>
+                        <input type="text" class="custom-input" id="inputNIM" placeholder="NIM otomatis muncul" readonly>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="inputProdi" class="form-label">Prodi</label>
+                        <input type="text" class="custom-input" id="inputProdi" placeholder="Prodi otomatis muncul" readonly>
+                    </div>
+
+                    <button type="submit" id="btnSubmit" class="btn-absen" disabled>
+                        <i class="fas fa-file-import"></i> Konfirmasi Kehadiran
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="right-section">
+            <div class="bg-image"></div>
+            
+            <img src="/images/logo_mrc.png" alt="Logo MRC" class="logo-center">
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/fullscreen.js"></script>
+    <script src="/js/autocomplete.js"></script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include('../partials/header') %>
+<body>
+    <div class="page">
+        <%- include('../partials/sidebar') %>
+        <div class="page-wrapper">
+            <div class="page-header d-print-none">
+                <div class="container-xl">
+                    <div class="row g-2 align-items-center">
+                        <div class="col">
+                            <h2 class="page-title">Laporan Absensi</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-body">
+                <div class="container-xl">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <form action="/admin/laporan" method="GET">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Tanggal Mulai</label>
+                                        <input type="date" name="tanggal_mulai" class="form-control" value="<%= filter.start %>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Tanggal Selesai</label>
+                                        <input type="date" name="tanggal_selesai" class="form-control" value="<%= filter.end %>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="btn-list">
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                <i class="fas fa-filter me-2"></i> Filter Data
+                                            </button>
+                                            <a href="/admin/export-laporan?..." class="btn btn-success w-100">
+                                                <i class="fas fa-file-excel me-2"></i> Export
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table card-table table-vcenter text-nowrap datatable">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Waktu</th>
+                                        <th>NIM</th>
+                                        <th>Nama</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% absensi.forEach((row, index) => { %>
+                                        <tr>
+                                            <td><%= index + 1 %></td>
+                                            <td><%= new Date(row.waktu_absen).toLocaleString('id-ID') %></td>
+                                            <td><%= row.peserta?.nim %></td>
+                                            <td><%= row.peserta?.nama %></td>
+                                            <td>
+                                                <span class="badge bg-success-lt"><%= row.status %></span>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <%- include('../partials/scripts') %>
+</body>
+</html>

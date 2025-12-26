@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include('../partials/header') %>
+<body>
+    <div class="page">
+        <%- include('../partials/sidebar') %>
+        <div class="page-wrapper">
+            <div class="page-header d-print-none">
+                <div class="container-xl">
+                    <h2 class="page-title">Pengaturan Sistem</h2>
+                </div>
+            </div>
+            
+            <div class="page-body">
+                <div class="container-xl">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8 col-lg-6">
+                            <div class="card">
+                                <div class="card-status-top bg-primary"></div>
+                                <div class="card-body">
+                                    <h3 class="card-title">Konfigurasi Jam Absen</h3>
+                                    <form action="/admin/pengaturan" method="POST">
+                                        <div class="row mb-3">
+                                            <div class="col">
+                                                <label class="form-label">Jam Buka</label>
+                                                <input type="time" name="jam_mulai" class="form-control" value="<%= setting.jam_mulai %>">
+                                            </div>
+                                            <div class="col">
+                                                <label class="form-label">Jam Tutup</label>
+                                                <input type="time" name="jam_selesai" class="form-control" value="<%= setting.jam_selesai %>">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" name="sesi_aktif" <%= setting.sesi_aktif ? 'checked' : '' %>>
+                                                <span class="form-check-label">Sesi Absensi Aktif</span>
+                                            </label>
+                                            <small class="form-hint">Jika dimatikan, peserta tidak bisa melakukan scan QR/Absen.</small>
+                                        </div>
+                                        <div class="mt-4">
+                                            <button type="submit" class="btn btn-primary w-100">Simpan Perubahan</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <%- include('../partials/scripts') %>
+</body>
+</html>

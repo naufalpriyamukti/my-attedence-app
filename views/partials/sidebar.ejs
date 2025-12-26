@@ -1,0 +1,90 @@
+<aside class="navbar navbar-vertical navbar-expand-lg" style="background-color: #384BC9; width: 280px; position: fixed; top: 0; left: 0; height: 100vh; z-index: 1030; overflow-y: auto;">
+    <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <h1 class="navbar-brand navbar-brand-autodark mt-3 mb-4">
+            <a href="/admin/dashboard" class="d-flex justify-content-center">
+                <img src="/images/logo_mrc.png" alt="Logo" class="navbar-brand-image" style="height: 60px; width: auto; filter: brightness(0) invert(1);">
+            </a>
+        </h1>
+
+        <div class="collapse navbar-collapse" id="sidebar-menu">
+            <ul class="navbar-nav pt-lg-3">
+                
+                <li class="nav-item mb-2 <%= page === 'dashboard' ? 'active-custom' : '' %>">
+                    <a class="nav-link text-white" href="/admin/dashboard" style="font-size: 1.1rem;">
+                        <span class="nav-link-icon d-md-none d-lg-inline-block text-white">
+                            <i class="fas fa-home fa-lg"></i>
+                        </span>
+                        <span class="nav-link-title ms-2">Dashboard</span>
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2 <%= page === 'data-peserta' ? 'active-custom' : '' %>">
+                    <a class="nav-link text-white" href="/admin/data-peserta" style="font-size: 1.1rem;">
+                        <span class="nav-link-icon d-md-none d-lg-inline-block text-white">
+                            <i class="fas fa-users fa-lg"></i>
+                        </span>
+                        <span class="nav-link-title ms-2">Data Peserta</span>
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2 <%= page === 'laporan' ? 'active-custom' : '' %>">
+                    <a class="nav-link text-white" href="/admin/laporan" style="font-size: 1.1rem;">
+                        <span class="nav-link-icon d-md-none d-lg-inline-block text-white">
+                            <i class="fas fa-file-alt fa-lg"></i>
+                        </span>
+                        <span class="nav-link-title ms-2">Laporan Absensi</span>
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2 <%= page === 'absensi-manual' ? 'active-custom' : '' %>">
+                    <a class="nav-link text-white" href="/admin/absensi-manual" style="font-size: 1.1rem;">
+                        <span class="nav-link-icon d-md-none d-lg-inline-block text-white">
+                            <i class="fas fa-pen-square fa-lg"></i>
+                        </span>
+                        <span class="nav-link-title ms-2">Absensi Manual</span>
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2 <%= page === 'pengaturan' ? 'active-custom' : '' %>">
+                    <a class="nav-link text-white" href="/admin/pengaturan" style="font-size: 1.1rem;">
+                        <span class="nav-link-icon d-md-none d-lg-inline-block text-white">
+                            <i class="fas fa-cog fa-lg"></i>
+                        </span>
+                        <span class="nav-link-title ms-2">Pengaturan</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="mt-auto p-3 mb-4">
+                <a href="/admin/logout" class="btn btn-outline-light w-100 fw-bold" style="border-width: 2px;">
+                    <i class="fas fa-sign-out-alt me-2"></i> Logout
+                </a>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<style>
+    /* Efek hover dan active pada menu */
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+    }
+    .active-custom .nav-link {
+        background-color: rgba(255, 255, 255, 0.2) !important;
+        border-radius: 8px;
+        font-weight: bold;
+    }
+    
+    /* Menggeser konten utama agar tidak tertutup sidebar yang fixed */
+    @media (min-width: 992px) {
+        .page-wrapper {
+            margin-left: 280px !important; /* Sesuaikan dengan width sidebar */
+            width: auto !important;
+        }
+    }
+</style>
