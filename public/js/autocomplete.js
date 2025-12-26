@@ -10,6 +10,14 @@ const formAbsensi = document.getElementById('formAbsensi');
 inputNama.addEventListener('input', async function() {
     const query = this.value;
 
+    // Jika user mengetik ulang, reset ID tersembunyi
+    if (inputId.value) {
+        inputId.value = '';
+        inputNIM.value = '';
+        inputProdi.value = '';
+        btnSubmit.disabled = true;
+    }
+
     if (query.length < 2) {
         suggestionsBox.style.display = 'none';
         suggestionsBox.innerHTML = '';
@@ -30,7 +38,7 @@ inputNama.addEventListener('input', async function() {
                 button.classList.add('list-group-item', 'list-group-item-action');
                 button.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center">
-                        <div>
+                        <div style="text-align: left;">
                             <strong>${item.nama}</strong>
                             <br><small class="text-muted">${item.nim}</small>
                         </div>
@@ -65,85 +73,95 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// 2. Logika Submit Absen (AJAX + SweetAlert)
+// 2. Logika Submit dengan SweetAlert Tombol
 formAbsensi.addEventListener('submit', async function(e) {
-    e.preventDefault(); // MENCEGAH RELOAD HALAMAN (KUNCI FULLSCREEN)
+    e.preventDefault(); 
 
-    // Ambil data form
     const peserta_id = inputId.value;
 
+    // Validasi input kosong
     if(!peserta_id) {
         Swal.fire({
-            icon: 'error',
-            title: 'Data Tidak Valid',
-            text: 'Silakan pilih nama dari saran yang muncul!',
-            timer: 2000,
-            showConfirmButton: false
+            icon: 'warning',
+            title: 'Data Belum Lengkap',
+            text: 'Mohon pilih nama Anda dari daftar saran yang muncul.',
+            confirmButtonText: 'Mengerti',
+            confirmButtonColor: '#384BC9'
+        }).then(() => {
+            // Reset form jika salah input
+            resetForm();
         });
         return;
     }
 
-    // Tampilkan Loading
+    // Loading State
+    const originalBtnText = btnSubmit.innerHTML;
     btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
     btnSubmit.disabled = true;
 
     try {
         const response = await fetch('/absen', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ peserta_id: peserta_id })
         });
 
         const result = await response.json();
 
         if (response.ok) {
-            // SUKSES
+            // --- SUKSES ---
             Swal.fire({
                 icon: 'success',
                 title: 'Berhasil Absen!',
-                text: `${inputNama.value} berhasil tercatat.`,
-                timer: 3000,
-                showConfirmButton: false,
-                backdrop: `
-                    rgba(0,0,123,0.4)
-                    url("/images/confetti.gif") 
-                    left top
-                    no-repeat
-                `
-            }).then(() => {
-                resetForm(); // Reset form agar siap untuk orang berikutnya
+                text: `Terima kasih ${inputNama.value}, kehadiran Anda tercatat.`,
+                confirmButtonText: 'OK, Selesai',
+                confirmButtonColor: '#2fb344',
+                allowOutsideClick: false 
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    resetForm(); // HAPUS TEXT SETELAH KLIK OK
+                }
             });
+
         } else {
-            // GAGAL (Misal duplikat atau jam tutup)
+            // --- GAGAL (Duplikat / Tutup) ---
             Swal.fire({
                 icon: 'error',
                 title: 'Gagal Absen',
                 text: result.message || 'Terjadi kesalahan sistem.',
+                confirmButtonText: 'Tutup',
+                confirmButtonColor: '#d63939',
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    resetForm(); // HAPUS TEXT SETELAH KLIK TUTUP
+                }
             });
-            btnSubmit.innerHTML = '<i class="fas fa-check-circle me-1"></i> KONFIRMASI KEHADIRAN';
-            btnSubmit.disabled = false;
         }
 
     } catch (error) {
-        console.error('Error:', error);
+        // --- ERROR SERVER ---
         Swal.fire({
             icon: 'error',
             title: 'Kesalahan Server',
-            text: 'Tidak dapat terhubung ke server.',
+            text: 'Gagal menghubungi server. Periksa koneksi internet.',
+            confirmButtonText: 'Tutup',
+            confirmButtonColor: '#d63939'
+        }).then(() => {
+            resetForm(); // HAPUS TEXT SETELAH KLIK TUTUP
         });
-        btnSubmit.innerHTML = '<i class="fas fa-check-circle me-1"></i> KONFIRMASI KEHADIRAN';
-        btnSubmit.disabled = false;
+    } finally {
+        btnSubmit.innerHTML = originalBtnText;
     }
 });
 
+// Fungsi Bersihkan Form
 function resetForm() {
     inputNama.value = '';
     inputNIM.value = '';
     inputProdi.value = '';
     inputId.value = '';
+    
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = '<i class="fas fa-check-circle me-1"></i> KONFIRMASI KEHADIRAN';
-    inputNama.focus(); // Kembalikan kursor ke input nama
+    inputNama.focus(); 
 }
