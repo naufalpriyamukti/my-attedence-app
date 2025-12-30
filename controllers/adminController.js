@@ -2,74 +2,83 @@ const supabase = require('../utils/supabaseClient');
 const ExcelJS = require('exceljs');
 
 // ==================================================================
-// 1. DASHBOARD (LOGIKA BARU)
+// 1. DASHBOARD
 // ==================================================================
 exports.dashboard = async (req, res) => {
     try {
-        // Setup rentang waktu hari ini (00:00 - 23:59)
+        // 1. Tangkap Tanggal dari Query URL (Default: Hari Ini)
+        // Dashboard EJS menggunakan name="date"
         const todayStr = new Date().toISOString().split('T')[0];
-        const todayStart = `${todayStr}T00:00:00`;
-        const todayEnd = `${todayStr}T23:59:59`;
+        const selectedDate = req.query.date || todayStr;
 
-        // A. Hitung Total Peserta
-        const { count: totalPeserta, error: errTotal } = await supabase
-            .from('peserta')
-            .select('*', { count: 'exact', head: true });
+        const startTime = `${selectedDate}T00:00:00`;
+        const endTime = `${selectedDate}T23:59:59`;
 
-        // B. Hitung Yang Hadir (Status: Hadir)
-        const { count: hadirHariIni, error: errHadir } = await supabase
-            .from('absensi')
+        // 2. Hitung Statistik (Berdasarkan Tanggal Terpilih)
+        // Total Peserta (Selalu semua)
+        const { count: totalPeserta } = await supabase.from('peserta').select('*', { count: 'exact', head: true });
+        
+        // Hadir pada tanggal terpilih
+        const { count: hadir } = await supabase.from('absensi')
             .select('*', { count: 'exact', head: true })
-            .gte('waktu_absen', todayStart)
-            .lte('waktu_absen', todayEnd)
+            .gte('waktu_absen', startTime).lte('waktu_absen', endTime)
             .eq('status', 'Hadir');
 
-        // C. Hitung Yang Terlambat (Status: Terlambat)
-         const { count: terlambat, error: errLambat } = await supabase
-            .from('absensi')
+        // Terlambat pada tanggal terpilih
+        const { count: terlambat } = await supabase.from('absensi')
             .select('*', { count: 'exact', head: true })
-            .gte('waktu_absen', todayStart)
-            .lte('waktu_absen', todayEnd)
+            .gte('waktu_absen', startTime).lte('waktu_absen', endTime)
             .eq('status', 'Terlambat');
+            
+        // Izin pada tanggal terpilih
+        const { count: izin } = await supabase.from('absensi')
+            .select('*', { count: 'exact', head: true })
+            .gte('waktu_absen', startTime).lte('waktu_absen', endTime)
+            .eq('status', 'Izin');
 
-        // D. Logika Mencari Siapa yang BELUM Absen
-        // 1. Ambil semua peserta
+        // 3. LOGIKA LIST TABEL (MERGE DATA)
         const { data: allPeserta } = await supabase.from('peserta').select('*').order('nama', { ascending: true });
         
-        // 2. Ambil semua ID yang sudah absen hari ini
-        const { data: absenToday } = await supabase
+        // Ambil data absen pada tanggal terpilih
+        const { data: absenSession } = await supabase
             .from('absensi')
-            .select('peserta_id')
-            .gte('waktu_absen', todayStart)
-            .lte('waktu_absen', todayEnd);
-        
-        // 3. Filter: Peserta yang ID-nya TIDAK ada di daftar absenToday
-        const idYangSudahAbsen = absenToday.map(a => a.peserta_id);
-        const belumAbsenList = allPeserta.filter(p => !idYangSudahAbsen.includes(p.id));
+            .select('peserta_id, status, waktu_absen')
+            .gte('waktu_absen', startTime).lte('waktu_absen', endTime);
 
-        // E. Render View
+        // Gabungkan data
+        const attendanceList = allPeserta.map(p => {
+            const log = absenSession.find(a => a.peserta_id === p.id);
+            return {
+                nim: p.nim,
+                nama: p.nama,
+                prodi: p.prodi,
+                status: log ? log.status : 'Belum Absen',
+                waktu: log ? new Date(log.waktu_absen).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'
+            };
+        });
+
+        // 4. Render View
         res.render('admin/dashboard', { 
             title: 'Dashboard - Admin Panel',
             user: req.session.user,
             page: 'dashboard',
             stats: {
                 total: totalPeserta || 0,
-                hadir: hadirHariIni || 0,
+                hadir: hadir || 0,
                 terlambat: terlambat || 0,
-                belum: (totalPeserta || 0) - ((hadirHariIni || 0) + (terlambat || 0))
+                izin: izin || 0,
+                belum: (totalPeserta || 0) - ((hadir || 0) + (terlambat || 0) + (izin || 0))
             },
-            belumAbsenList: belumAbsenList // Data untuk tabel "Belum Absen"
+            attendanceList: attendanceList,
+            filterDate: selectedDate // Kirim tanggal ke view untuk form filter & tombol export
         });
 
     } catch (err) {
         console.error("Dashboard Error:", err);
-        // Fallback jika error agar tidak crash
         res.render('admin/dashboard', { 
-            title: 'Dashboard', 
-            user: req.session.user, 
-            page: 'dashboard', 
-            stats: { total: 0, hadir: 0, terlambat: 0, belum: 0 }, 
-            belumAbsenList: [] 
+            title: 'Dashboard', user: req.session.user, page: 'dashboard', 
+            stats: { total: 0, hadir: 0, terlambat: 0, izin: 0, belum: 0 }, 
+            attendanceList: [], filterDate: new Date().toISOString().split('T')[0]
         });
     }
 };
@@ -77,96 +86,64 @@ exports.dashboard = async (req, res) => {
 // ==================================================================
 // 2. MANAJEMEN PESERTA (CRUD LENGKAP)
 // ==================================================================
-
-// Tampilkan Halaman Data Peserta
 exports.halamanPeserta = async (req, res) => {
     try {
-        const { data, error } = await supabase
-            .from('peserta')
-            .select('*')
-            .order('nama', { ascending: true });
-
+        const { data, error } = await supabase.from('peserta').select('*').order('nama', { ascending: true });
         if (error) throw error;
-
         res.render('admin/data-peserta', {
-            title: 'Data Peserta',
-            page: 'data-peserta',
-            user: req.session.user,
-            peserta: data,
-            status: req.query.status
+            title: 'Data Peserta', page: 'data-peserta', user: req.session.user,
+            peserta: data, status: req.query.status, msg: req.query.msg
         });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Terjadi Kesalahan Server");
-    }
+    } catch (err) { res.status(500).send("Server Error"); }
 };
 
-// [BARU] Tambah Peserta Manual
 exports.tambahPeserta = async (req, res) => {
     const { nama, nim, prodi } = req.body;
     try {
         const { error } = await supabase.from('peserta').insert([{ nama, nim, prodi }]);
         if(error) throw error;
-        res.redirect('/admin/data-peserta?status=success_add');
-    } catch (err) {
-        console.error(err);
-        res.redirect('/admin/data-peserta?status=error');
-    }
+        res.redirect('/admin/data-peserta?status=success&msg=Peserta berhasil ditambahkan');
+    } catch (err) { res.redirect('/admin/data-peserta?status=error&msg=Gagal menambah peserta'); }
 };
 
-// [BARU] Edit Peserta
 exports.editPeserta = async (req, res) => {
     const { id, nama, nim, prodi } = req.body;
     try {
-        const { error } = await supabase
-            .from('peserta')
-            .update({ nama, nim, prodi })
-            .eq('id', id);
-            
+        const { error } = await supabase.from('peserta').update({ nama, nim, prodi }).eq('id', id);   
         if(error) throw error;
-        res.redirect('/admin/data-peserta?status=success_edit');
-    } catch (err) {
-        console.error(err);
-        res.redirect('/admin/data-peserta?status=error');
-    }
+        res.redirect('/admin/data-peserta?status=success&msg=Data peserta diperbarui');
+    } catch (err) { res.redirect('/admin/data-peserta?status=error&msg=Gagal update peserta'); }
 };
 
-// Hapus Peserta
 exports.hapusPeserta = async (req, res) => {
     const { id } = req.params;
     try {
         const { error } = await supabase.from('peserta').delete().eq('id', id);
         if (error) throw error;
-        res.redirect('/admin/data-peserta?status=success_delete');
-    } catch (err) {
-        res.redirect('/admin/data-peserta?status=error_delete');
-    }
+        res.redirect('/admin/data-peserta?status=success&msg=Peserta berhasil dihapus');
+    } catch (err) { res.redirect('/admin/data-peserta?status=error&msg=Gagal menghapus peserta'); }
 };
 
-// Import Excel
 exports.importPeserta = async (req, res) => {
     try {
-        if (!req.file) return res.redirect('/admin/data-peserta?status=error_no_file');
-
+        if (!req.file) return res.redirect('/admin/data-peserta?status=error&msg=File tidak ditemukan');
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(req.file.buffer);
         const worksheet = workbook.getWorksheet(1);
-        
         const dataToInsert = [];
 
         worksheet.eachRow((row, rowNumber) => {
             if (rowNumber === 1) return; 
-
-            const nama = row.getCell(1).value;
-            const nim = row.getCell(2).value;
-            const prodi = row.getCell(3).value;
-
+            let cell1 = row.getCell(1).value;
+            let nama, nim, prodi;
+            
+            if (cell1 && !isNaN(cell1)) { 
+                nama = row.getCell(2).value; nim = row.getCell(3).value; prodi = row.getCell(4).value;
+            } else {
+                nama = row.getCell(1).value; nim = row.getCell(2).value; prodi = row.getCell(3).value;
+            }
             if (nama && nim) {
-                dataToInsert.push({
-                    nama: nama.toString(),
-                    nim: nim.toString(),
-                    prodi: prodi ? prodi.toString() : '-'
-                });
+                dataToInsert.push({ nama: nama.toString(), nim: nim.toString(), prodi: prodi ? prodi.toString() : '-' });
             }
         });
 
@@ -174,35 +151,62 @@ exports.importPeserta = async (req, res) => {
             const { error } = await supabase.from('peserta').insert(dataToInsert);
             if (error) throw error;
         }
-
-        res.redirect('/admin/data-peserta?status=success_import');
-    } catch (err) {
-        console.error(err);
-        res.redirect('/admin/data-peserta?status=error_import');
-    }
+        res.redirect('/admin/data-peserta?status=success&msg=Import Excel Berhasil');
+    } catch (err) { res.redirect('/admin/data-peserta?status=error&msg=Gagal Import Excel'); }
 };
 
 // ==================================================================
-// 3. LAPORAN ABSENSI
+// 3. PENGATURAN & RESET
 // ==================================================================
+exports.halamanPengaturan = async (req, res) => {
+    try {
+        let { data, error } = await supabase.from('pengaturan').select('*').limit(1).single();
+        if (!data) {
+             const { data: newData } = await supabase.from('pengaturan')
+                .insert([{ jam_mulai: '07:00', jam_selesai: '17:00', sesi_aktif: true }]).select().single();
+             data = newData;
+        }
+        res.render('admin/pengaturan', {
+            title: 'Pengaturan Sistem', page: 'pengaturan', user: req.session.user,
+            setting: data, status: req.query.status, msg: req.query.msg
+        });
+    } catch (err) { res.status(500).send("Error mengambil pengaturan"); }
+};
 
+exports.updatePengaturan = async (req, res) => {
+    const { jam_mulai, jam_selesai, sesi_aktif } = req.body;
+    const isAktif = sesi_aktif === 'on';
+    try {
+        const { error } = await supabase.from('pengaturan').update({ jam_mulai, jam_selesai, sesi_aktif: isAktif }).gt('id', 0);
+        if (error) throw error;
+        res.redirect('/admin/pengaturan?status=success&msg=Pengaturan Jam Disimpan');
+    } catch (err) { res.redirect('/admin/pengaturan?status=error&msg=Gagal menyimpan pengaturan'); }
+};
+
+exports.resetAbsensi = async (req, res) => {
+    try {
+        const { error } = await supabase.from('pengaturan').update({ last_reset: new Date() }).gt('id', 0);
+        if (error) throw error;
+        res.redirect('/admin/pengaturan?status=success&msg=Sesi Baru Dimulai! Peserta bisa absen kembali.');
+    } catch (err) { res.redirect('/admin/pengaturan?status=error&msg=Gagal mereset absensi.'); }
+};
+
+// ==================================================================
+// 4. LAPORAN & MANUAL (LOGIKA BARU: SINGLE DATE)
+// ==================================================================
 exports.halamanLaporan = async (req, res) => {
-    const { tanggal_mulai, tanggal_selesai } = req.query;
-    
-    const today = new Date().toISOString().split('T')[0];
-    const start = tanggal_mulai || today;
-    const end = tanggal_selesai || today;
+    // Tangkap parameter 'tanggal' dari URL (Laporan EJS menggunakan name="tanggal")
+    const todayStr = new Date().toISOString().split('T')[0];
+    const filterDate = req.query.tanggal || todayStr;
 
-    const startTime = `${start}T00:00:00`;
-    const endTime = `${end}T23:59:59`;
+    // Set rentang waktu 1 hari penuh
+    const startTime = `${filterDate}T00:00:00`;
+    const endTime = `${filterDate}T23:59:59`;
 
     try {
         const { data, error } = await supabase
             .from('absensi')
-            .select(`
-                id, waktu_absen, status,
-                peserta ( nama, nim, prodi ) 
-            `)
+            .select(`id, waktu_absen, status, peserta ( nama, nim, prodi )`)
             .gte('waktu_absen', startTime)
             .lte('waktu_absen', endTime)
             .order('waktu_absen', { ascending: false });
@@ -210,161 +214,76 @@ exports.halamanLaporan = async (req, res) => {
         if (error) throw error;
 
         res.render('admin/laporan', {
-            title: 'Laporan Absensi',
-            page: 'laporan',
-            user: req.session.user,
-            absensi: data,
-            filter: { start, end }
+            title: 'Laporan Absensi', page: 'laporan', user: req.session.user,
+            absensi: data, filterDate: filterDate, status: req.query.status, msg: req.query.msg
         });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Terjadi Kesalahan Server saat mengambil laporan.");
-    }
+    } catch (err) { res.status(500).send("Error Laporan"); }
 };
 
 exports.exportLaporan = async (req, res) => {
-    const { tanggal_mulai, tanggal_selesai } = req.query;
-    
-    const start = tanggal_mulai || new Date().toISOString().split('T')[0];
-    const end = tanggal_selesai || new Date().toISOString().split('T')[0];
+    // Support parameter 'tanggal' (dari Laporan) atau 'date' (jika dari Dashboard)
+    const todayStr = new Date().toISOString().split('T')[0];
+    const filterDate = req.query.tanggal || req.query.date || todayStr;
+
+    const startTime = `${filterDate}T00:00:00`;
+    const endTime = `${filterDate}T23:59:59`;
 
     try {
         const { data, error } = await supabase
             .from('absensi')
             .select(`waktu_absen, status, peserta ( nama, nim, prodi )`)
-            .gte('waktu_absen', `${start}T00:00:00`)
-            .lte('waktu_absen', `${end}T23:59:59`)
+            .gte('waktu_absen', startTime)
+            .lte('waktu_absen', endTime)
             .order('waktu_absen', { ascending: true });
 
         if (error) throw error;
 
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Laporan Absensi');
-
+        const worksheet = workbook.addWorksheet('Laporan');
         worksheet.columns = [
             { header: 'No', key: 'no', width: 5 },
             { header: 'Tanggal', key: 'tanggal', width: 15 },
             { header: 'Jam', key: 'jam', width: 10 },
-            { header: 'Nama Lengkap', key: 'nama', width: 30 },
+            { header: 'Nama', key: 'nama', width: 30 },
             { header: 'NIM', key: 'nim', width: 15 },
             { header: 'Prodi', key: 'prodi', width: 25 },
             { header: 'Status', key: 'status', width: 15 }
         ];
-
         data.forEach((row, index) => {
             const dateObj = new Date(row.waktu_absen);
             worksheet.addRow({
                 no: index + 1,
                 tanggal: dateObj.toLocaleDateString('id-ID'),
                 jam: dateObj.toLocaleTimeString('id-ID'),
-                nama: row.peserta ? row.peserta.nama : 'Peserta Terhapus',
-                nim: row.peserta ? row.peserta.nim : '-',
-                prodi: row.peserta ? row.peserta.prodi : '-',
+                nama: row.peserta?.nama || '-',
+                nim: row.peserta?.nim || '-',
+                prodi: row.peserta?.prodi || '-',
                 status: row.status
             });
         });
-
         worksheet.getRow(1).font = { bold: true };
-
+        
+        // Nama file menyertakan tanggal yang dipilih
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename=Laporan_Absensi_${start}_sd_${end}.xlsx`);
-
+        res.setHeader('Content-Disposition', `attachment; filename=Laporan_Absensi_${filterDate}.xlsx`);
         await workbook.xlsx.write(res);
         res.end();
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Gagal Export Excel");
-    }
+    } catch (err) { res.status(500).send("Gagal Export"); }
 };
-
-// ==================================================================
-// 4. PENGATURAN SISTEM
-// ==================================================================
-
-exports.halamanPengaturan = async (req, res) => {
-    try {
-        let { data, error } = await supabase
-            .from('pengaturan')
-            .select('*')
-            .order('id', { ascending: true })
-            .limit(1)
-            .single();
-
-        if (!data) {
-             const { data: newData } = await supabase
-                .from('pengaturan')
-                .insert([{ jam_mulai: '07:00', jam_selesai: '17:00', sesi_aktif: true }])
-                .select()
-                .single();
-             data = newData;
-        }
-
-        res.render('admin/pengaturan', {
-            title: 'Pengaturan Sistem',
-            page: 'pengaturan',
-            user: req.session.user,
-            setting: data,
-            status: req.query.status
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Error mengambil pengaturan");
-    }
-};
-
-exports.updatePengaturan = async (req, res) => {
-    const { jam_mulai, jam_selesai, sesi_aktif } = req.body;
-    const isAktif = sesi_aktif === 'on';
-
-    try {
-        const { error } = await supabase
-            .from('pengaturan')
-            .update({ 
-                jam_mulai, 
-                jam_selesai, 
-                sesi_aktif: isAktif 
-            })
-            .gt('id', 0);
-
-        if (error) throw error;
-        res.redirect('/admin/pengaturan?status=success');
-    } catch (err) {
-        console.error(err);
-        res.redirect('/admin/pengaturan?status=error');
-    }
-};
-
-// ==================================================================
-// 5. ABSENSI MANUAL
-// ==================================================================
 
 exports.halamanManual = async (req, res) => {
     const { data: peserta } = await supabase.from('peserta').select('id, nama, nim').order('nama');
-    
     res.render('admin/absensi-manual', {
-        title: 'Absensi Manual',
-        page: 'absensi-manual',
-        user: req.session.user,
-        peserta: peserta || [],
-        status: req.query.status
+        title: 'Absensi Manual', page: 'absensi-manual', user: req.session.user, peserta: peserta || [],
+        status: req.query.status, msg: req.query.msg
     });
 };
 
 exports.prosesManual = async (req, res) => {
     const { peserta_id, tanggal, jam, status } = req.body;
-    const waktu_absen = `${tanggal}T${jam}:00`;
-
     try {
-        const { error } = await supabase.from('absensi').insert([{
-            peserta_id,
-            waktu_absen,
-            status
-        }]);
-
+        const { error } = await supabase.from('absensi').insert([{ peserta_id, waktu_absen: `${tanggal}T${jam}:00`, status }]);
         if (error) throw error;
-        res.redirect('/admin/absensi-manual?status=success');
-    } catch (err) {
-        console.error(err);
-        res.redirect('/admin/absensi-manual?status=error');
-    }
+        res.redirect('/admin/absensi-manual?status=success&msg=Absensi manual berhasil disimpan');
+    } catch (err) { res.redirect('/admin/absensi-manual?status=error&msg=Gagal menyimpan data'); }
 };

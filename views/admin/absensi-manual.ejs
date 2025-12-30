@@ -23,7 +23,8 @@
                                     <form action="/admin/absensi-manual" method="POST">
                                         <div class="mb-3">
                                             <label class="form-label">Pilih Peserta</label>
-                                            <select class="form-select" name="peserta_id">
+                                            <select class="form-select" name="peserta_id" required>
+                                                <option value="" disabled selected>-- Cari Nama / NIM --</option>
                                                 <% peserta.forEach(p => { %>
                                                     <option value="<%= p.id %>"><%= p.nama %> - <%= p.nim %></option>
                                                 <% }) %>
@@ -52,7 +53,9 @@
                                             </select>
                                         </div>
                                         <div class="form-footer">
-                                            <button type="submit" class="btn btn-primary w-100">Simpan Data</button>
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                <i class="fas fa-save me-2"></i> Simpan Data
+                                            </button>
                                         </div>
                                     </form>
                                 </div>
@@ -63,6 +66,53 @@
             </div>
         </div>
     </div>
+    
     <%- include('../partials/scripts') %>
+
+    <script>
+        // Tangkap parameter dari URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get('status');
+        const msg = urlParams.get('msg');
+
+        // Logic Alert
+        if (status === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: msg || 'Data absensi manual berhasil disimpan.',
+                confirmButtonColor: '#2fb344',
+                timer: 3000
+            }).then(() => {
+                // Bersihkan URL
+                window.history.replaceState(null, null, window.location.pathname);
+            });
+        } else if (status === 'error') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: msg || 'Terjadi kesalahan saat menyimpan data.',
+                confirmButtonColor: '#d63939'
+            }).then(() => {
+                window.history.replaceState(null, null, window.location.pathname);
+            });
+        }
+
+        // Set Default Tanggal & Jam ke Waktu Sekarang
+        document.addEventListener("DOMContentLoaded", function() {
+            const now = new Date();
+            const dateInput = document.querySelector('input[name="tanggal"]');
+            const timeInput = document.querySelector('input[name="jam"]');
+
+            if (!dateInput.value) {
+                dateInput.value = now.toISOString().split('T')[0];
+            }
+            if (!timeInput.value) {
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                timeInput.value = `${hours}:${minutes}`;
+            }
+        });
+    </script>
 </body>
 </html>

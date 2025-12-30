@@ -58,4 +58,7 @@ router.post('/absensi-manual', isAuthenticated, adminController.prosesManual);
 router.get('/pengaturan', isAuthenticated, adminController.halamanPengaturan);
 router.post('/pengaturan', isAuthenticated, adminController.updatePengaturan);
 
+// ... route lainnya
+router.post('/reset-absensi', isAuthenticated, adminController.resetAbsensi);
+
 module.exports = router;

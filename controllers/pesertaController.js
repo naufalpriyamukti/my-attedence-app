@@ -33,58 +33,63 @@ exports.submitAbsen = async (req, res) => {
     const { peserta_id } = req.body;
 
     try {
-        // 1. Ambil Pengaturan
-        const { data: setting } = await supabase
+        // 1. Ambil Pengaturan (Jam & Waktu Reset Terakhir)
+        const { data: setting, error: errSetting } = await supabase
             .from('pengaturan')
             .select('*')
             .limit(1)
             .single();
+        
+        if (errSetting || !setting) throw new Error("Gagal mengambil pengaturan sistem.");
 
+        // 2. Validasi Sesi Aktif
         if (!setting.sesi_aktif) {
             return res.status(400).json({ message: 'Sesi absensi sedang ditutup oleh Admin.' });
         }
 
-        // 2. Validasi Jam Server
+        // 3. Validasi Jam Server
         const now = new Date();
-        const currentTime = now.toTimeString().split(' ')[0];
+        const currentTime = now.toTimeString().split(' ')[0]; // Format "HH:MM:SS"
 
         if (currentTime < setting.jam_mulai || currentTime > setting.jam_selesai) {
-            return res.status(400).json({ message: `Absensi hanya dibuka jam ${setting.jam_mulai} s/d ${setting.jam_selesai}` });
+            return res.status(400).json({ message: `Absensi hanya dibuka jam ${setting.jam_mulai} - ${setting.jam_selesai}` });
         }
 
-        // 3. Cek Duplikasi
-        const todayStart = new Date().toISOString().split('T')[0] + 'T00:00:00';
-        const todayEnd = new Date().toISOString().split('T')[0] + 'T23:59:59';
+        // 4. CEK DUPLIKASI CERDAS (Berdasarkan 'last_reset')
+        // Jika admin belum pernah reset, pakai awal hari ini sebagai fallback
+        const checkTime = setting.last_reset || new Date().toISOString().split('T')[0] + 'T00:00:00';
 
         const { data: cekDuplikat } = await supabase
             .from('absensi')
             .select('id')
             .eq('peserta_id', peserta_id)
-            .gte('waktu_absen', todayStart)
-            .lte('waktu_absen', todayEnd);
+            .gte('waktu_absen', checkTime); // Cek apakah sudah absen SETELAH admin melakukan reset terakhir
 
         if (cekDuplikat.length > 0) {
-            return res.status(400).json({ message: 'Anda sudah melakukan absensi hari ini.' });
+            return res.status(400).json({ message: 'Anda sudah melakukan absensi untuk sesi ini.' });
         }
 
-        // 4. Proses Simpan
+        // 5. Simpan Absen
+        // Tentukan status (Hadir/Terlambat)
+        // Logika sederhana: Jika masih dalam jam buka = Hadir (Karena kalau lewat jam tutup sudah dicek di langkah 3)
+        // Tapi jika ingin logika terlambat spesifik, bisa disesuaikan. Di sini kita anggap Hadir jika dalam range.
+        const status = 'Hadir'; 
+
         const { error } = await supabase
             .from('absensi')
-            .insert([
-                { 
-                    peserta_id: peserta_id,
-                    waktu_absen: new Date(), 
-                    status: (currentTime > setting.jam_selesai) ? 'Terlambat' : 'Hadir' 
-                }
-            ]);
+            .insert([{ 
+                peserta_id, 
+                waktu_absen: new Date(), 
+                status: status 
+            }]);
 
         if (error) throw error;
 
-        // RESPONSE JSON SUKSES
+        // RESPONSE SUKSES
         return res.status(200).json({ message: 'Absensi Berhasil', success: true });
 
     } catch (err) {
-        console.error(err);
+        console.error("Error Absen:", err);
         return res.status(500).json({ message: 'Terjadi kesalahan server.' });
     }
 };

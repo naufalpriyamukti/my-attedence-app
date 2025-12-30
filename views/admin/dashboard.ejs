@@ -4,6 +4,7 @@
 <body>
     <div class="page">
         <%- include('../partials/sidebar') %>
+        
         <div class="page-wrapper">
             <div class="page-header d-print-none">
                 <div class="container-xl">
@@ -12,6 +13,12 @@
                             <div class="page-pretitle">Overview</div>
                             <h2 class="page-title">Dashboard</h2>
                         </div>
+                        <div class="col-auto ms-auto d-print-none">
+                            <form action="/admin/dashboard" method="GET" class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0 text-muted">Tanggal:</label>
+                                <input type="date" name="date" class="form-control" value="<%= filterDate %>" onchange="this.form.submit()">
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -19,25 +26,21 @@
             <div class="page-body">
                 <div class="container-xl">
                     
-                    <div class="row row-deck row-cards mb-4">
-                        <div class="col-sm-6 col-lg-3">
+                    <div class="row row-deck row-cards mb-4 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5">
+                        <div class="col">
                             <div class="card">
                                 <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div class="subheader">Total Peserta</div>
-                                    </div>
+                                    <div class="subheader">Total Peserta</div>
                                     <div class="h1 mb-3"><%= stats.total %></div>
-                                    <div class="d-flex mb-2">
-                                        <div>Terdaftar di sistem</div>
-                                    </div>
+                                    <div class="d-flex mb-2"><div>Terdaftar</div></div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-sm-6 col-lg-3">
-                            <div class="card card-active"> <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div class="subheader">Hadir Hari Ini</div>
-                                    </div>
+
+                        <div class="col">
+                            <div class="card card-active">
+                                <div class="card-body">
+                                    <div class="subheader">Hadir</div>
                                     <div class="h1 mb-3 text-success"><%= stats.hadir %></div>
                                     <div class="d-flex mb-2">
                                         <span class="text-success me-2"><i class="fas fa-check"></i></span> Tepat Waktu
@@ -45,28 +48,38 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-sm-6 col-lg-3">
+
+                        <div class="col">
                             <div class="card">
                                 <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div class="subheader">Terlambat</div>
-                                    </div>
+                                    <div class="subheader">Terlambat</div>
                                     <div class="h1 mb-3 text-warning"><%= stats.terlambat %></div>
                                     <div class="d-flex mb-2">
-                                        <span class="text-warning me-2"><i class="fas fa-clock"></i></span> Absen Lewat Jam
+                                        <span class="text-warning me-2"><i class="fas fa-clock"></i></span> Telat
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-sm-6 col-lg-3">
+
+                        <div class="col">
                             <div class="card">
                                 <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div class="subheader">Belum Absen</div>
+                                    <div class="subheader">Izin</div>
+                                    <div class="h1 mb-3 text-info"><%= stats.izin %></div>
+                                    <div class="d-flex mb-2">
+                                        <span class="text-info me-2"><i class="fas fa-envelope-open-text"></i></span> Info
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="subheader">Belum Absen</div>
                                     <div class="h1 mb-3 text-danger"><%= stats.belum %></div>
                                     <div class="d-flex mb-2">
-                                        <span class="text-danger me-2"><i class="fas fa-times"></i></span> Perlu konfirmasi
+                                        <span class="text-danger me-2"><i class="fas fa-times"></i></span> Alpha
                                     </div>
                                 </div>
                             </div>
@@ -75,44 +88,60 @@
 
                     <div class="col-12">
                         <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Daftar Peserta Belum Absen Hari Ini</h3>
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h3 class="card-title">Rekapitulasi Absensi (<%= filterDate %>)</h3>
                             </div>
+                            
                             <div class="card-body border-bottom py-3">
                                 <div class="d-flex">
-                                    <div class="text-muted">
-                                        Menampilkan data peserta yang belum melakukan scan kehadiran hari ini.
+                                    <div class="ms-auto text-muted">
+                                        <div class="input-group">
+                                            <span class="input-group-text text-muted">Search:</span>
+                                            <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Cari nama/nim..." style="width: 200px;">
+                                            
+                                            <a href="/admin/export-laporan?tanggal_mulai=<%= filterDate %>&tanggal_selesai=<%= filterDate %>" class="btn btn-success btn-sm ms-2" title="Download Excel Sesuai Tanggal Ini">
+                                                <i class="fas fa-file-excel me-1"></i> Export Excel
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table card-table table-vcenter text-nowrap datatable">
-                                    <thead>
+                            
+                            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                <table class="table card-table table-vcenter text-nowrap datatable" id="tableAbsensi">
+                                    <thead style="position: sticky; top: 0; background-color: #ffffff; z-index: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
                                         <tr>
                                             <th>NIM</th>
                                             <th>Nama Lengkap</th>
                                             <th>Prodi</th>
+                                            <th>Waktu</th>
                                             <th class="w-1">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <% if (belumAbsenList.length === 0) { %>
-                                            <tr><td colspan="4" class="text-center">Semua peserta sudah hadir! 🎉</td></tr>
-                                        <% } %>
-                                        <% belumAbsenList.slice(0, 10).forEach(p => { %>
+                                        <% attendanceList.forEach(p => { %>
                                             <tr>
                                                 <td><span class="text-muted"><%= p.nim %></span></td>
-                                                <td><span class="fw-bold"><%= p.nama %></span></td>
+                                                <td><span class="fw-bold name-cell"><%= p.nama %></span></td>
                                                 <td><%= p.prodi %></td>
-                                                <td><span class="badge bg-danger me-1"></span> Belum Hadir</td>
+                                                <td><%= p.waktu %></td>
+                                                <td>
+                                                    <% if(p.status === 'Hadir') { %>
+                                                        <span class="badge bg-success me-1"></span> Hadir
+                                                    <% } else if(p.status === 'Terlambat') { %>
+                                                        <span class="badge bg-warning me-1"></span> Terlambat
+                                                    <% } else if(p.status === 'Izin') { %>
+                                                        <span class="badge bg-info me-1"></span> Izin
+                                                    <% } else { %>
+                                                        <span class="badge bg-danger me-1"></span> Belum Absen
+                                                    <% } %>
+                                                </td>
                                             </tr>
                                         <% }) %>
-                                        <% if (belumAbsenList.length > 10) { %>
-                                            <tr><td colspan="4" class="text-center text-muted">... dan <%= belumAbsenList.length - 10 %> lainnya</td></tr>
-                                        <% } %>
                                     </tbody>
                                 </table>
                             </div>
+                            
                         </div>
                     </div>
 
@@ -121,5 +150,31 @@
         </div>
     </div>
     <%- include('../partials/scripts') %>
+
+    <script>
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            var input, filter, table, tr, tdName, tdNim, i, txtValueName, txtValueNim;
+            input = document.getElementById('searchInput');
+            filter = input.value.toUpperCase();
+            table = document.getElementById('tableAbsensi');
+            tr = table.getElementsByTagName('tr');
+
+            for (i = 0; i < tr.length; i++) {
+                tdNim = tr[i].getElementsByTagName('td')[0];
+                tdName = tr[i].getElementsByTagName('td')[1];
+                
+                if (tdName || tdNim) {
+                    txtValueName = tdName.textContent || tdName.innerText;
+                    txtValueNim = tdNim.textContent || tdNim.innerText;
+                    
+                    if (txtValueName.toUpperCase().indexOf(filter) > -1 || txtValueNim.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>
