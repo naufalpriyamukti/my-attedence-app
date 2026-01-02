@@ -12,8 +12,8 @@ async function createAdmin() {
     console.log("Sedang membuat user admin...");
     
     const { data, error } = await supabase.auth.signUp({
-        email: 'admin.mrc@gmail.com', // Ganti ke domain umum
-        password: 'admin123#',
+        email: 'admin@mrc.com', // Ganti ke domain umum
+        password: 'admin123',
     });
 
     if (error) {
