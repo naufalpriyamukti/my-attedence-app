@@ -29,6 +29,21 @@
                                 </div>
                                 <div class="card-body">
                                     <form action="/admin/pengaturan" method="POST">
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label required">Tanggal Konfigurasi</label>
+                                            <div class="input-icon">
+                                                <span class="input-icon-addon">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                </span>
+                                                <input type="date" name="tanggal_config" id="tanggalConfig" class="form-control" required>
+                                            </div>
+                                            <small class="form-hint text-success">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                Otomatis menyesuaikan tanggal hari ini (Zona Waktu Lokal).
+                                            </small>
+                                        </div>
+
                                         <div class="row mb-3">
                                             <div class="col">
                                                 <label class="form-label">Jam Buka</label>
@@ -39,14 +54,16 @@
                                                 <input type="time" name="jam_selesai" class="form-control" value="<%= setting.jam_selesai %>">
                                             </div>
                                         </div>
+                                        
                                         <div class="mb-3">
                                             <label class="form-label">Status Sesi</label>
                                             <label class="form-check form-switch">
                                                 <input class="form-check-input" type="checkbox" name="sesi_aktif" <%= setting.sesi_aktif ? 'checked' : '' %>>
                                                 <span class="form-check-label">Aktifkan Absensi</span>
                                             </label>
-                                            <small class="form-hint">Jika dimatikan, peserta tidak bisa melakukan scan/absen meskipun di dalam jam operasional.</small>
+                                            <small class="form-hint">Jika dimatikan, peserta tidak bisa melakukan scan/absen.</small>
                                         </div>
+                                        
                                         <div class="mt-4">
                                             <button type="submit" class="btn btn-primary w-100">
                                                 <i class="fas fa-save me-2"></i> Simpan Perubahan
@@ -99,12 +116,34 @@
     <%- include('../partials/scripts') %>
 
     <script>
-        // 1. Tangkap Parameter URL (?status=...&msg=...)
+        // 1. LOGIKA TANGGAL OTOMATIS (Zona Waktu Lokal)
+        document.addEventListener("DOMContentLoaded", function() {
+            const dateInput = document.getElementById('tanggalConfig');
+            
+            // Cek jika input belum ada isinya (jika lupa diisi/baru buka)
+            if (!dateInput.value) {
+                const now = new Date();
+                
+                // Mendapatkan Tahun, Bulan, Tanggal Lokal
+                const year = now.getFullYear();
+                // getMonth() mulai dari 0, jadi tambah 1. padStart pastikan 2 digit (01, 02, dst)
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                
+                // Format YYYY-MM-DD
+                const localDate = `${year}-${month}-${day}`;
+                
+                // Set nilai input
+                dateInput.value = localDate;
+                console.log("Tanggal otomatis diset ke (Lokal):", localDate);
+            }
+        });
+
+        // 2. SweetAlert & Reset Logic (Kode Lama)
         const urlParams = new URLSearchParams(window.location.search);
         const status = urlParams.get('status');
         const msg = urlParams.get('msg');
 
-        // 2. Tampilkan Alert Berdasarkan Status
         if (status === 'success') {
             Swal.fire({
                 icon: 'success',
@@ -113,7 +152,6 @@
                 confirmButtonColor: '#2fb344',
                 timer: 3000
             }).then(() => {
-                // Hapus parameter dari URL agar bersih
                 window.history.replaceState(null, null, window.location.pathname);
             });
         } else if (status === 'error') {
@@ -127,15 +165,14 @@
             });
         }
 
-        // 3. Konfirmasi Tombol Reset
         function confirmReset() {
             Swal.fire({
                 title: 'Mulai Sesi Baru?',
                 text: "Semua peserta akan dianggap belum hadir untuk sesi baru ini. Data lama aman.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d63939', // Merah
-                cancelButtonColor: '#3085d6', // Biru
+                confirmButtonColor: '#d63939',
+                cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Ya, Reset Sekarang!',
                 cancelButtonText: 'Batal'
             }).then((result) => {

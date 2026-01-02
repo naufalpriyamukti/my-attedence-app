@@ -1,6 +1,15 @@
 const supabase = require('../utils/supabaseClient');
 const ExcelJS = require('exceljs');
 
+// Helper: Mendapatkan tanggal hari ini dalam format YYYY-MM-DD sesuai lokal (WIB/Server)
+const getLocalDate = () => {
+    const now = new Date();
+    // Mengoreksi offset timezone agar sesuai lokal
+    const offset = now.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(now - offset).toISOString().slice(0, 10);
+    return localISOTime;
+};
+
 // ==================================================================
 // 1. DASHBOARD
 // ==================================================================
@@ -8,9 +17,10 @@ exports.dashboard = async (req, res) => {
     try {
         // 1. Tangkap Tanggal dari Query URL (Default: Hari Ini)
         // Dashboard EJS menggunakan name="date"
-        const todayStr = new Date().toISOString().split('T')[0];
-        const selectedDate = req.query.date || todayStr;
+        const selectedDate = req.query.date || getLocalDate();
 
+        // FIX BUG TANGGAL: Menggunakan format ISO string lengkap
+        // Tambahkan jam spesifik agar query Supabase akurat
         const startTime = `${selectedDate}T00:00:00`;
         const endTime = `${selectedDate}T23:59:59`;
 
@@ -53,6 +63,7 @@ exports.dashboard = async (req, res) => {
                 nama: p.nama,
                 prodi: p.prodi,
                 status: log ? log.status : 'Belum Absen',
+                // Tampilkan waktu lokal
                 waktu: log ? new Date(log.waktu_absen).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'
             };
         });
@@ -78,7 +89,7 @@ exports.dashboard = async (req, res) => {
         res.render('admin/dashboard', { 
             title: 'Dashboard', user: req.session.user, page: 'dashboard', 
             stats: { total: 0, hadir: 0, terlambat: 0, izin: 0, belum: 0 }, 
-            attendanceList: [], filterDate: new Date().toISOString().split('T')[0]
+            attendanceList: [], filterDate: getLocalDate()
         });
     }
 };
@@ -196,12 +207,11 @@ exports.resetAbsensi = async (req, res) => {
 // ==================================================================
 exports.halamanLaporan = async (req, res) => {
     // Tangkap parameter 'tanggal' dari URL (Laporan EJS menggunakan name="tanggal")
-    const todayStr = new Date().toISOString().split('T')[0];
-    const filterDate = req.query.tanggal || todayStr;
+    const selectedDate = req.query.tanggal || getLocalDate();
 
-    // Set rentang waktu 1 hari penuh
-    const startTime = `${filterDate}T00:00:00`;
-    const endTime = `${filterDate}T23:59:59`;
+    // Set rentang waktu 1 hari penuh (Local Aware)
+    const startTime = `${selectedDate}T00:00:00`;
+    const endTime = `${selectedDate}T23:59:59`;
 
     try {
         const { data, error } = await supabase
@@ -215,18 +225,17 @@ exports.halamanLaporan = async (req, res) => {
 
         res.render('admin/laporan', {
             title: 'Laporan Absensi', page: 'laporan', user: req.session.user,
-            absensi: data, filterDate: filterDate, status: req.query.status, msg: req.query.msg
+            absensi: data, filterDate: selectedDate, status: req.query.status, msg: req.query.msg
         });
     } catch (err) { res.status(500).send("Error Laporan"); }
 };
 
 exports.exportLaporan = async (req, res) => {
     // Support parameter 'tanggal' (dari Laporan) atau 'date' (jika dari Dashboard)
-    const todayStr = new Date().toISOString().split('T')[0];
-    const filterDate = req.query.tanggal || req.query.date || todayStr;
+    const selectedDate = req.query.tanggal || req.query.date || getLocalDate();
 
-    const startTime = `${filterDate}T00:00:00`;
-    const endTime = `${filterDate}T23:59:59`;
+    const startTime = `${selectedDate}T00:00:00`;
+    const endTime = `${selectedDate}T23:59:59`;
 
     try {
         const { data, error } = await supabase
@@ -265,7 +274,7 @@ exports.exportLaporan = async (req, res) => {
         
         // Nama file menyertakan tanggal yang dipilih
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename=Laporan_Absensi_${filterDate}.xlsx`);
+        res.setHeader('Content-Disposition', `attachment; filename=Laporan_Absensi_${selectedDate}.xlsx`);
         await workbook.xlsx.write(res);
         res.end();
     } catch (err) { res.status(500).send("Gagal Export"); }

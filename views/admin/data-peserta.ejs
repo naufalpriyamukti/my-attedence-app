@@ -34,16 +34,6 @@
             <div class="page-body">
                 <div class="container-xl">
                     
-                    <% if (status === 'success_add') { %>
-                        <div class="alert alert-success alert-dismissible" role="alert">Berhasil menambah peserta!<a href="#" class="btn-close" data-bs-dismiss="alert" aria-label="close"></a></div>
-                    <% } else if (status === 'success_import') { %>
-                        <div class="alert alert-success alert-dismissible" role="alert">Import Excel berhasil!<a href="#" class="btn-close" data-bs-dismiss="alert" aria-label="close"></a></div>
-                    <% } else if (status === 'success_delete') { %>
-                        <div class="alert alert-success alert-dismissible" role="alert">Data berhasil dihapus.<a href="#" class="btn-close" data-bs-dismiss="alert" aria-label="close"></a></div>
-                    <% } else if (status === 'error') { %>
-                        <div class="alert alert-danger alert-dismissible" role="alert">Terjadi kesalahan sistem.<a href="#" class="btn-close" data-bs-dismiss="alert" aria-label="close"></a></div>
-                    <% } %>
-
                     <div class="card shadow-sm border-0" style="border-radius: 12px;">
                         <div class="table-responsive">
                             <table class="table card-table table-vcenter text-nowrap datatable table-hover">
@@ -71,9 +61,9 @@
                                                     onclick="editData('<%= p.id %>', '<%= p.nama %>', '<%= p.nim %>', '<%= p.prodi %>')">
                                                     <i class="fas fa-edit"></i> Edit
                                                 </button>
-                                                <a href="/admin/hapus-peserta/<%= p.id %>" class="btn btn-sm btn-ghost-danger" onclick="return confirm('Yakin ingin menghapus peserta ini?')">
+                                                <button class="btn btn-sm btn-ghost-danger" onclick="confirmDelete('<%= p.id %>', '<%= p.nama %>')">
                                                     <i class="fas fa-trash"></i> Hapus
-                                                </a>
+                                                </button>
                                             </td>
                                         </tr>
                                     <% }) %>
@@ -143,7 +133,6 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label">Upload File Excel</label>
-                            
                             <div class="dropzone-area" id="dropzone">
                                 <div class="text-center">
                                     <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-2"></i>
@@ -153,7 +142,6 @@
                                 </div>
                                 <input type="file" name="fileExcel" id="fileExcel" class="file-input-hidden" accept=".xlsx, .xls" required>
                             </div>
-
                         </div>
                         <div class="alert alert-info bg-azure-lt border-0">
                             <small>
@@ -232,7 +220,7 @@
     </style>
 
     <script>
-        // Logika Drag & Drop
+        // 1. Logika Drag & Drop
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileExcel');
         const fileNameDisplay = document.getElementById('file-name-display');
@@ -261,7 +249,7 @@
             }
         });
 
-        // Logika Modal Edit
+        // 2. Logika Modal Edit
         function editData(id, nama, nim, prodi) {
             document.getElementById('edit_id').value = id;
             document.getElementById('edit_nama').value = nama;
@@ -269,6 +257,61 @@
             document.getElementById('edit_prodi').value = prodi;
             var myModal = new bootstrap.Modal(document.getElementById('editModal'));
             myModal.show();
+        }
+
+        // 3. SWEETALERT LOGIC (Pengganti Alert Bawaan & Alert URL)
+        
+        // A. Cek Parameter URL untuk Notifikasi Sukses/Gagal
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get('status');
+        const msg = urlParams.get('msg');
+
+        if (status) {
+            let title, icon, text;
+            
+            if (status === 'success_add') {
+                title = 'Berhasil!'; text = 'Data peserta berhasil ditambahkan.'; icon = 'success';
+            } else if (status === 'success_import') {
+                title = 'Import Berhasil!'; text = 'Data dari Excel berhasil diimport.'; icon = 'success';
+            } else if (status === 'success_edit') {
+                title = 'Update Berhasil!'; text = 'Data peserta berhasil diperbarui.'; icon = 'success';
+            } else if (status === 'success_delete') {
+                title = 'Terhapus!'; text = 'Data peserta telah dihapus.'; icon = 'success';
+            } else if (status === 'error') {
+                title = 'Gagal!'; text = msg || 'Terjadi kesalahan sistem.'; icon = 'error';
+            } else {
+                title = 'Info'; text = msg || 'Operasi selesai.'; icon = 'info';
+            }
+
+            Swal.fire({
+                title: title,
+                text: text,
+                icon: icon,
+                confirmButtonColor: '#384BC9',
+                timer: 3000
+            }).then(() => {
+                // Hapus parameter URL agar alert tidak muncul lagi saat refresh
+                window.history.replaceState(null, null, window.location.pathname);
+            });
+        }
+
+        // B. Konfirmasi Hapus Data (Pengganti confirm() bawaan)
+        function confirmDelete(id, nama) {
+            Swal.fire({
+                title: 'Hapus Peserta?',
+                text: `Anda yakin ingin menghapus data "${nama}"? Data absensi terkait juga mungkin akan hilang.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d63939', // Warna Merah
+                cancelButtonColor: '#3085d6', // Warna Biru
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirect ke URL hapus jika dikonfirmasi
+                    window.location.href = `/admin/hapus-peserta/${id}`;
+                }
+            });
         }
     </script>
 </body>
